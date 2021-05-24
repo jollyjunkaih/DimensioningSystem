@@ -8,5 +8,3 @@ Hardware in use:
 Software in use:
 1) librealsense repo/wrapper/python/boxdimensioning (free)
 2) DIMS Weight Measurement Viewer (paid)
-
-Hi Chuan Kang
