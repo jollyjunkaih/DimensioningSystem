@@ -1,3 +1,4 @@
+# Importing KIVY modules
 from kivy.app import App
 from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.button import Button
@@ -18,117 +19,73 @@ from datetime import datetime
 
 # Import helper functions and classes written to wrap the RealSense, OpenCV and Kabsch Calibration usage
 from collections import defaultdict
-from realsense_device_manager import DeviceManager
-from calibration_kabsch import PoseEstimation
-from helper_functions import get_boundary_corners_2D
-from measurement_task import calculate_boundingbox_points, calculate_cumulative_pointcloud, visualise_measurements
+from CV_Intel.realsense_device_manager import DeviceManager
+from CV_Intel.calibration_kabsch import PoseEstimation
+from CV_Intel.helper_functions import get_boundary_corners_2D
+from CV_Intel.measurement_task import calculate_boundingbox_points, calculate_cumulative_pointcloud, visualise_measurements
 
+# Setting up Different Screens
 sm = ScreenManager()
 screens = [Screen(name='Start Page'), Screen(
     name='Calibration'), Screen(name='DIM Measurement'), Screen(name='Unable to sense checkerboard')]
 
-# Add no camera found error handling/unknown error
 
-# Variables
+# Global Variables to store the information required
 namev = ""
 lengthv = 0
 widthv = 0
 heightv = 0
 weightv = 0
-volumev = 0
 df = pd.DataFrame(columns=["SKU", "Length",
-                  "Width", "Height", "Weight", "Volume"])
+                  "Width", "Height", "Weight"])
 
 # onStart Window Size
 Window.size = (900, 700)
+# Background Colour
 Window.clearcolor = (110/255.0, 147/255.0, 222/255.0, 1)
 
-# Erosion Method
-
-
-def erode(image):
-    kernel = np.ones((5, 5), np.uint8)
-    # opening - erosion followed by dilation
-    return cv2.erode(image, kernel, iterations=1)
-
-
-# Callback Methods
+# Button Callback Methods
 
 
 def measuref(instance):
-    # Get the values from the camera
-    frames_devices = device_manager.poll_frames()
 
-    # Calculate the pointcloud using the depth frames from all the devices
-    point_cloud = calculate_cumulative_pointcloud(
-        frames_devices, calibration_info_devices, roi_2D)
+    # Computer Vision Method
+    computerVisionMethod()
 
-    # Get the bounding box for the pointcloud in image coordinates of the color imager
-    bounding_box_points_color_image, length, width, height = calculate_boundingbox_points(
-        point_cloud, calibration_info_devices)
+    # LIDAR Method
+    lidarMethod()
 
-    # get value from camera or lidar for measurements
+    # OCR Method
+    weight = ocrRead()
 
-    # get value from OCR read from camera
-
-    # take a picture
-    camera_port = 0
-    camera = cv2.VideoCapture(camera_port)
-    time.sleep(0.1)  # If you don't wait, the image will be dark
-    return_value, image = camera.read()
-    cv2.imwrite("picture.png", image)
-    del(camera)  # so that others can use the camera as soon as possible
-
-    # crop the picture
-    crop_img = cv2.imread("testt(4).jpg")
-    """ crop_img = img[0:367, 400:872]
-    cv2.imshow("cropped", crop_img)
-    cv2.waitKey(0) """
-
-    # perform OCR read
-    img = erode(crop_img)
-    weight = pytesseract.image_to_string(
-        img, config='--psm 7 --oem 3 -c tessedit_char_whitelist=0123456789 -l lets')
-    print("Old weight: " + weight)
-    weight.replace(" ", "")
-    weight = int(weight)
-    print("New Weight: ", weight)
     # Updates the current stored value
     lengthv = int(length*1000)
     widthv = int(width*1000)
     heightv = int(height*1000)
     weightv = weight
-    volumev = 10
 
     # Swaps the Text for Display
     lengthInput.text = str(lengthv)
     widthInput.text = str(widthv)
     heightInput.text = str(heightv)
     weightInput.text = str(weightv)
-    volumeInput.text = str(volumev)
-
-    print("Calling the Measurement Functions and Populating the Text Inputs with the value")
 
 
 def submitf(instance):
     global df
-    # Take in the inputs and add it to the DF  (DONE)
-    temp_df = pd.DataFrame([[nameInput.text, lengthInput.text, widthInput.text, heightInput.text, weightInput.text, volumeInput.text]], columns=["SKU", "Length",
-                                                                                                                                                 "Width", "Height", "Weight", "Volume"])
+    # Take in the inputs and add it to the DF
+    temp_df = pd.DataFrame([[nameInput.text, lengthInput.text, widthInput.text, heightInput.text, weightInput.text]], columns=["SKU", "Length",
+                                                                                                                               "Width", "Height", "Weight"])
     print(temp_df)
 
     if df.empty:
-        print('DataFrame is empty!')
         df = temp_df
     else:
-        print('DataFrame is not empty!')
         df = df.append(temp_df)
 
     print(df)
 
     # Refresh List View
-
-    print("Submit Measurements and SKU Name to an array (pandas)")
 
 
 def deletef(instance):
@@ -148,10 +105,9 @@ def createcsvf(instance):
 
     fileName = day+"-"+month+"-"+year+"--"+hour+minute+".csv"
     df.to_csv(fileName, index=False, header=True)
-    print("Create a csv with x amount of rows and 6 columns")
 
     df = pd.DataFrame(columns=["SKU", "Length",
-                               "Width", "Height", "Weight", "Volume"])
+                               "Width", "Height", "Weight"])
 
 
 def calibratef(instance):
@@ -276,37 +232,32 @@ def calibratef(instance):
 
 
 def onNameType(instance, value):
+    global namev
     namev = value
     print('The widget', instance, 'have:', value)
 
 
 def onLengthType(instance, value):
+    global lengthv
     lengthv = value
     print('The widget', instance, 'have:', value)
 
 
 def onWidthType(instance, value):
+    global widthv
     widthv = value
     print('The widget', instance, 'have:', value)
 
 
 def onHeightType(instance, value):
+    global heightv
     heightv = value
     print('The widget', instance, 'have:', value)
 
 
 def onWeightType(instance, value):
+    global weightv
     weightv = value
-    print('The widget', instance, 'have:', value)
-
-
-def onVolumeType(instance, value):
-    volumev = value
-    print('The widget', instance, 'have:', value)
-
-
-def onNameType(instance, value):
-    namev = value
     print('The widget', instance, 'have:', value)
 
 
@@ -327,8 +278,6 @@ heightInput = TextInput(text=str(heightv), multiline=False, size_hint=(.2, .05),
                         pos_hint={'x': .75, 'y': .725})
 weightInput = TextInput(text=str(weightv), multiline=False, size_hint=(.2, .05),
                         pos_hint={'x': .25, 'y': .625})
-volumeInput = TextInput(text=str(volumev), multiline=False,  size_hint=(.2, .05),
-                        pos_hint={'x': .625, 'y': .625})
 
 
 # Labels
@@ -350,9 +299,6 @@ height = Label(text="Height (cm):",
 weight = Label(text="Weight (g):",
                size_hint=(.1, .05),
                pos_hint={'x': .15, 'y': .625})
-volume = Label(text="Volume (cm^3):",
-               size_hint=(.1, .05),
-               pos_hint={'x': .5, 'y': .625})
 welcomeTitle = Label(text="Welcome to DIY DIM System\nPress start to begin Calibration",
                      size_hint=(.5, .05),
                      pos_hint={'x': .25, 'y': .75})
@@ -399,7 +345,6 @@ lengthInput.bind(text=onLengthType)
 widthInput.bind(text=onWidthType)
 heightInput.bind(text=onHeightType)
 weightInput.bind(text=onWeightType)
-volumeInput.bind(text=onVolumeType)
 
 # Adding List View
 listview = ScrollView(size_hint=(0.5, 0.5), size=(Window.width, Window.height))
@@ -415,13 +360,11 @@ layout.add_widget(length)
 layout.add_widget(width)
 layout.add_widget(height)
 layout.add_widget(weight)
-layout.add_widget(volume)
 layout.add_widget(nameInput)
 layout.add_widget(lengthInput)
 layout.add_widget(widthInput)
 layout.add_widget(heightInput)
 layout.add_widget(weightInput)
-layout.add_widget(volumeInput)
 layout.add_widget(listview)
 startlayout.add_widget(calibrate)
 startlayout.add_widget(welcomeTitle)
@@ -450,3 +393,56 @@ class DIMSoftware(App):
 # Deploying the Software
 DIMSoftware().run()
 device_manager.disable_streams()
+
+
+# Erosion Method for OCR
+def erode(image):
+    kernel = np.ones((5, 5), np.uint8)
+    # opening - erosion followed by dilation
+    return cv2.erode(image, kernel, iterations=1)
+
+# Dimension Measurement Methods
+
+
+def computerVisionMethod():
+    # Get the values from the camera
+    frames_devices = device_manager.poll_frames()
+
+    # Calculate the pointcloud using the depth frames from all the devices
+    point_cloud = calculate_cumulative_pointcloud(
+        frames_devices, calibration_info_devices, roi_2D)
+
+    # Get the bounding box for the pointcloud in image coordinates of the color imager
+    bounding_box_points_color_image, length, width, height = calculate_boundingbox_points(
+        point_cloud, calibration_info_devices)
+
+
+def lidarMethod():
+    pass
+
+
+def ocrRead():
+    # take a picture
+    camera_port = 0
+    camera = cv2.VideoCapture(camera_port)
+    time.sleep(0.1)  # If you don't wait, the image will be dark
+    return_value, image = camera.read()
+    cv2.imwrite("picture.png", image)
+    del(camera)  # so that others can use the camera as soon as possible
+
+    # crop the picture
+    crop_img = cv2.imread("testt(4).jpg")
+    """ crop_img = img[0:367, 400:872]
+    cv2.imshow("cropped", crop_img)
+    cv2.waitKey(0) """
+
+    # perform OCR read
+    img = erode(crop_img)
+    weight = pytesseract.image_to_string(
+        img, config='--psm 7 --oem 3 -c tessedit_char_whitelist=0123456789 -l lets')
+    print("Old weight: " + weight)
+    weight.replace(" ", "")
+    weight = int(weight)
+    print("New Weight: ", weight)
+
+    return weight
