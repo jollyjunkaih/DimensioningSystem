@@ -29,6 +29,11 @@ sm = ScreenManager()
 screens = [Screen(name='Start Page'), Screen(
     name='Calibration'), Screen(name='DIM Measurement'), Screen(name='Unable to sense checkerboard')]
 
+# Parametes that can be tweaked
+chessboard_width = 6  # squares
+chessboard_height = 9 	# squares
+square_size = 0.0253  # meters
+
 
 # Global Variables to store the information required
 namev = ""
@@ -117,10 +122,6 @@ def calibratef(instance):
     resolution_height = 720  # pixels
     frame_rate = 15  # fps
     dispose_frames_for_stablisation = 30  # frames
-
-    chessboard_width = 6  # squares
-    chessboard_height = 9 	# squares
-    square_size = 0.0253  # meters
 
     try:
         # Enable the streams from all the intel realsense devices
@@ -230,6 +231,8 @@ def calibratef(instance):
 
     # run calibration code
 
+# function taht is called when you type stuff in the text input
+
 
 def onNameType(instance, value):
     global namev
@@ -261,10 +264,13 @@ def onWeightType(instance, value):
     print('The widget', instance, 'have:', value)
 
 
+# Styling of the GUI
+
 layout = FloatLayout(size=(900, 700))
 calibrationlayout = FloatLayout(size=(900, 700))
 startlayout = FloatLayout(size=(900, 700))
 errorlayout = FloatLayout(size=(900, 700))
+
 
 # Text Inputs
 nameInput = TextInput(text='', size_hint=(.2, .05),
@@ -350,6 +356,7 @@ weightInput.bind(text=onWeightType)
 listview = ScrollView(size_hint=(0.5, 0.5), size=(Window.width, Window.height))
 listview.add_widget(delete)
 
+
 # Adding the Widgets to the Layout
 layout.add_widget(title)
 layout.add_widget(measure)
@@ -372,9 +379,9 @@ calibrationlayout.add_widget(calibrationTitle)
 errorlayout.add_widget(errorTitle)
 
 
-screens[0].add_widget(startlayout)
+screens[0].add_widget(layout)
 screens[1].add_widget(calibrationlayout)
-screens[2].add_widget(layout)
+screens[2].add_widget(startlayout)
 screens[3].add_widget(errorlayout)
 
 sm.add_widget(screens[0])
@@ -418,31 +425,31 @@ def computerVisionMethod():
 
 
 def lidarMethod():
+    # add the new code after testing from mouseControl.py
     pass
 
 
 def ocrRead():
     # take a picture
-    camera_port = 0
+    camera_port = 0  # can toggle the value to switch between the laptop camera and the webcam
     camera = cv2.VideoCapture(camera_port)
-    time.sleep(0.1)  # If you don't wait, the image will be dark
+    # If you don't wait, the image will be dark
+    time.sleep(0.1)
     return_value, image = camera.read()
     cv2.imwrite("picture.png", image)
-    del(camera)  # so that others can use the camera as soon as possible
+    # so that others can use the camera as soon as possible
+    del(camera)
 
     # crop the picture
-    crop_img = cv2.imread("testt(4).jpg")
-    """ crop_img = img[0:367, 400:872]
-    cv2.imshow("cropped", crop_img)
-    cv2.waitKey(0) """
+    crop_img = cv2.imread("picture.png")
+    # to be done manually after the mount has been set
+    crop_img = crop_img[0:367, 400:872]
 
     # perform OCR read
     img = erode(crop_img)
     weight = pytesseract.image_to_string(
         img, config='--psm 7 --oem 3 -c tessedit_char_whitelist=0123456789 -l lets')
-    print("Old weight: " + weight)
     weight.replace(" ", "")
     weight = int(weight)
-    print("New Weight: ", weight)
 
     return weight
